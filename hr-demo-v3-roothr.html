@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RootHR — ระบบทรัพยากรบุคคล</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600;1,700&family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper:    #F4EDE0;
+    --paper-dk: #EAE0CE;
+    --surface:  #FAF5EC;
+    --ink:      #2C1F12;
+    --ink-mid:  #5A3E28;
+    --ink-soft: #9B7E63;
+    --rule:     #D4BFA0;
+    --rule-lt:  #E8D9C4;
+    --wood:     #7C5C3A;
+    --amber:    #C17F3E;
+    --amber-lt: #F0DFC0;
+    --leaf:     #4A6741;
+    --leaf-lt:  #D6E8D2;
+    --rust:     #A84B2F;
+    --rust-lt:  #F2DDD6;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: "Source Serif 4", Georgia, serif;
+    background: var(--paper);
+    color: var(--ink);
+    font-size: 14.5px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Ruled paper texture overlay */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 27px,
+      var(--rule-lt) 27px,
+      var(--rule-lt) 28px
+    );
+    opacity: .45;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; position: relative; z-index: 1; }
+
+  /* ── LEFT PANEL (ledger spine) ─────────────────── */
+  .ledger {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 32px 0;
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* Vertical grain lines on dark panel */
+  .ledger::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: repeating-linear-gradient(
+      to right,
+      transparent 0px,
+      transparent 40px,
+      rgba(255,255,255,.03) 40px,
+      rgba(255,255,255,.03) 41px
+    );
+    pointer-events: none;
+  }
+
+  .brand-block {
+    padding: 0 26px 28px 26px;
+    border-bottom: 1px solid rgba(255,255,255,.12);
+    margin-bottom: 28px;
+    position: relative;
+  }
+  .brand-eyebrow {
+    font-family: "Courier Prime", monospace;
+    font-size: 10px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 6px;
+  }
+  .brand-name {
+    font-family: "Playfair Display", Georgia, serif;
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -.01em;
+  }
+  .brand-sub {
+    font-size: 11.5px;
+    color: rgba(244,237,224,.5);
+    margin-top: 6px;
+    font-style: italic;
+  }
+
+  .nav-section-label {
+    font-family: "Courier Prime", monospace;
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--amber);
+    padding: 0 26px 10px 26px;
+    opacity: .85;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 26px;
+    color: rgba(244,237,224,.6);
+    cursor: pointer;
+    font-size: 14px;
+    font-style: italic;
+    transition: background .15s, color .15s;
+    position: relative;
+    border-left: 3px solid transparent;
+  }
+  .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+  .nav-item:hover { color: var(--paper); background: rgba(255,255,255,.05); }
+  .nav-item.active {
+    color: var(--paper);
+    background: rgba(193,127,62,.18);
+    border-left-color: var(--amber);
+    font-style: normal;
+    font-weight: 600;
+  }
+
+  .ledger-footer {
+    margin-top: auto;
+    padding: 20px 26px 0 26px;
+    border-top: 1px solid rgba(255,255,255,.1);
+    position: relative;
+  }
+  .ledger-stamp {
+    font-family: "Courier Prime", monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--amber);
+    border: 1.5px solid var(--amber);
+    display: inline-block;
+    padding: 4px 9px;
+    margin-bottom: 10px;
+    opacity: .8;
+    transform: rotate(-2deg);
+  }
+  .user-name-ledger {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--paper);
+  }
+  .user-role-ledger {
+    font-size: 11.5px;
+    color: rgba(244,237,224,.5);
+    font-style: italic;
+  }
+
+  /* ── MAIN ──────────────────────────────────────── */
+  .main { padding: 36px 40px 70px 40px; }
+  .page { display: none; }
+  .page.active { display: block; animation: unfold .28s ease; }
+  @keyframes unfold { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+  .page-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 28px;
+    padding-bottom: 16px;
+    border-bottom: 2.5px double var(--rule);
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+  .page-title {
+    font-family: "Playfair Display", Georgia, serif;
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -.02em;
+    line-height: 1.1;
+  }
+  .page-sub {
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    margin-top: 5px;
+    font-family: "Courier Prime", monospace;
+    letter-spacing: .04em;
+  }
+
+  .btn {
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    padding: 11px 22px;
+    font-family: "Source Serif 4", Georgia, serif;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 0;
+    letter-spacing: .02em;
+    transition: background .15s;
+  }
+  .btn:hover { background: var(--wood); }
+  .btn.amber-btn { background: var(--amber); }
+  .btn.amber-btn:hover { background: var(--wood); }
+  .btn.leaf-btn { background: var(--leaf); }
+  .btn.leaf-btn:hover { background: var(--ink); }
+
+  /* ── REGISTER GRID (signature element) ─────────── */
+  .register-card {
+    background: var(--surface);
+    border: 1.5px solid var(--rule);
+    margin-bottom: 24px;
+    padding: 20px 24px 16px;
+    position: relative;
+  }
+  .register-card::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 46px;
+    width: 1px; height: 100%;
+    background: #D4A5A5;
+    opacity: .4;
+  }
+  .reg-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .reg-title {
+    font-family: "Playfair Display", serif;
+    font-size: 16px;
+    font-weight: 700;
+    font-style: italic;
+  }
+  .reg-meta {
+    font-family: "Courier Prime", monospace;
+    font-size: 11px;
+    color: var(--ink-soft);
+    letter-spacing: .06em;
+  }
+
+  .reg-table { width: 100%; border-collapse: collapse; }
+  .reg-table th {
+    font-family: "Courier Prime", monospace;
+    font-size: 10.5px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    text-align: center;
+    padding: 6px 4px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .reg-table th.name-col { text-align: left; width: 120px; }
+  .reg-table td {
+    padding: 7px 4px;
+    border-bottom: 1px solid var(--rule-lt);
+    text-align: center;
+    vertical-align: middle;
+    font-size: 13px;
+  }
+  .reg-table td.name-col {
+    text-align: left;
+    font-size: 12.5px;
+    font-weight: 600;
+    padding-left: 0;
+    color: var(--ink-mid);
+    white-space: nowrap;
+  }
+  .reg-table tbody tr:last-child td { border-bottom: none; }
+  .mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    font-family: "Courier Prime", monospace;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .mark.in    { color: var(--leaf); }
+  .mark.leave { color: var(--amber); font-style: italic; }
+  .mark.late  { color: var(--rust); }
+  .mark.out   { color: var(--rule); }
+
+  .reg-legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--rule-lt);
+    font-family: "Courier Prime", monospace;
+    font-size: 11px;
+    color: var(--ink-soft);
+    flex-wrap: wrap;
+  }
+  .reg-legend span { display: inline-flex; align-items: center; gap: 5px; }
+
+  /* ── STAT CARDS ─────────────────────────────────── */
+  .grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 22px; }
+  .grid-2 { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; margin-bottom: 22px; }
+
+  .card {
+    background: var(--surface);
+    border: 1.5px solid var(--rule);
+    padding: 18px 20px;
+  }
+
+  .stat-eyebrow {
+    font-family: "Courier Prime", monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin-bottom: 8px;
+  }
+  .stat-value {
+    font-family: "Playfair Display", serif;
+    font-size: 34px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -.02em;
+  }
+  .stat-value .unit { font-size: 14px; font-weight: 400; font-style: italic; color: var(--ink-soft); margin-left: 4px; }
+  .stat-delta { font-size: 11.5px; margin-top: 8px; color: var(--ink-soft); font-style: italic; }
+  .stat-delta.up { color: var(--leaf); }
+  .stat-delta.warn { color: var(--amber); }
+  .stat-border-left { border-left: 4px solid var(--amber); }
+  .stat-border-left.leaf-accent { border-left-color: var(--leaf); }
+  .stat-border-left.rust-accent { border-left-color: var(--rust); }
+  .stat-border-left.wood-accent { border-left-color: var(--wood); }
+
+  .card-title {
+    font-family: "Playfair Display", serif;
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .card-sub {
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-bottom: 16px;
+    font-style: italic;
+    font-family: "Courier Prime", monospace;
+  }
+
+  /* ── TABLES ─────────────────────────────────────── */
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    font-family: "Courier Prime", monospace;
+    text-align: left;
+    font-size: 10.5px;
+    color: var(--ink-soft);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    padding: 0 12px 12px 12px;
+    border-bottom: 2px solid var(--rule);
+  }
+  td {
+    padding: 12px;
+    border-bottom: 1px solid var(--rule-lt);
+    font-size: 13.5px;
+    vertical-align: middle;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--paper-dk); }
+
+  .person-cell { display: flex; align-items: center; gap: 10px; }
+  .av {
+    width: 34px; height: 34px;
+    border-radius: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-family: "Playfair Display", serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--paper);
+    flex-shrink: 0;
+  }
+  .av-1 { background: var(--wood); }
+  .av-2 { background: var(--leaf); }
+  .av-3 { background: var(--amber); color: var(--ink); }
+  .av-4 { background: var(--rust); }
+  .p-name { font-weight: 600; font-size: 13.5px; }
+  .p-role { font-size: 11.5px; color: var(--ink-soft); font-style: italic; }
+
+  .stamp-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    font-family: "Courier Prime", monospace;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    border: 1.5px solid;
+  }
+  .stamp-badge.ok     { color: var(--leaf); border-color: var(--leaf); background: var(--leaf-lt); }
+  .stamp-badge.warn   { color: var(--amber); border-color: var(--amber); background: var(--amber-lt); }
+  .stamp-badge.danger { color: var(--rust);  border-color: var(--rust);  background: var(--rust-lt); }
+  .stamp-badge.neutral{ color: var(--ink-soft); border-color: var(--rule); background: var(--paper-dk); }
+
+  /* toolbar */
+  .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; gap: 12px; flex-wrap: wrap; }
+  .search {
+    display: flex; align-items: center; gap: 8px;
+    border: 1.5px solid var(--rule);
+    padding: 9px 14px;
+    background: var(--surface);
+    min-width: 240px;
+  }
+  .search input { border: none; outline: none; font-size: 13px; font-family: "Source Serif 4", serif; width: 100%; background: transparent; }
+  .search svg { width: 15px; height: 15px; stroke: var(--ink-soft); flex-shrink: 0; }
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip {
+    border: 1.5px solid var(--rule);
+    background: var(--surface);
+    padding: 7px 14px;
+    font-size: 12.5px;
+    font-family: "Source Serif 4", serif;
+    color: var(--ink-soft);
+    cursor: pointer;
+    font-style: italic;
+  }
+  .chip.active { background: var(--ink); color: var(--paper); border-color: var(--ink); font-style: normal; font-weight: 600; }
+
+  /* ── LEAVE PAGE ─────────────────────────────────── */
+  .leave-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-bottom: 22px; }
+  .leave-type-card {
+    background: var(--surface);
+    border: 1.5px solid var(--rule);
+    padding: 18px 20px;
+    position: relative;
+  }
+  .leave-type-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+  .leave-type-icon {
+    width: 36px; height: 36px;
+    border: 1.5px solid var(--rule);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 17px;
+  }
+  .leave-bar-track { height: 7px; background: var(--paper-dk); border: 1px solid var(--rule); margin-top: 10px; }
+  .leave-bar-fill { height: 100%; }
+  .fill-amber { background: var(--amber); }
+  .fill-rust  { background: var(--rust); }
+  .fill-leaf  { background: var(--leaf); }
+
+  /* req rows */
+  .req-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 13px 0; border-bottom: 1px solid var(--rule-lt);
+    gap: 12px; flex-wrap: wrap;
+  }
+  .req-row:last-child { border-bottom: none; }
+  .req-left { display: flex; align-items: center; gap: 12px; }
+  .req-meta { font-size: 12px; color: var(--ink-soft); font-style: italic; margin-top: 2px; }
+  .req-actions { display: flex; gap: 8px; }
+  .icon-btn {
+    width: 32px; height: 32px;
+    border: 1.5px solid var(--rule);
+    background: var(--surface);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+  .icon-btn svg { width: 14px; height: 14px; }
+  .icon-btn.approve:hover { background: var(--leaf-lt); border-color: var(--leaf); }
+  .icon-btn.reject:hover  { background: var(--rust-lt);  border-color: var(--rust); }
+
+  /* ── PAYROLL ─────────────────────────────────────── */
+  .payroll-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-bottom: 22px; }
+  .progress-row { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .progress-row:last-child { margin-bottom: 0; }
+  .progress-label { width: 120px; font-size: 12.5px; color: var(--ink-soft); font-style: italic; flex-shrink: 0; }
+  .progress-track { flex: 1; height: 8px; background: var(--paper-dk); border: 1px solid var(--rule); }
+  .progress-fill { height: 100%; background: var(--amber); }
+  .progress-val { width: 80px; text-align: right; font-size: 12.5px; font-weight: 600; font-family: "Courier Prime", monospace; flex-shrink: 0; }
+  .slip-link { color: var(--wood); font-weight: 600; cursor: pointer; font-size: 13px; font-style: italic; }
+  .slip-link:hover { text-decoration: underline; }
+
+  ::-webkit-scrollbar { height: 6px; width: 6px; }
+  ::-webkit-scrollbar-thumb { background: var(--rule); }
+
+  @media (max-width: 860px) {
+    .app { grid-template-columns: 1fr; }
+    .ledger { display: none; }
+    .grid-4 { grid-template-columns: repeat(2,1fr); }
+    .grid-2 { grid-template-columns: 1fr; }
+    .leave-grid, .payroll-grid { grid-template-columns: 1fr; }
+    .main { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ── LEDGER PANEL ── -->
+  <aside class="ledger">
+    <div class="brand-block">
+      <div class="brand-eyebrow">Est. 2569 · HR Ledger</div>
+      <div class="brand-name">Root<br>HR</div>
+      <div class="brand-sub">บริษัท สมาร์ทเวิร์ค จำกัด</div>
+    </div>
+
+    <div class="nav-section-label">สารบัญ</div>
+
+    <div class="nav-item active" data-page="dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+      ภาพรวมสรุป
+    </div>
+    <div class="nav-item" data-page="employees">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="8" r="2.6"/><path d="M16 13.5c2.6.4 4.5 2.6 4.5 6.5"/></svg>
+      ทะเบียนพนักงาน
+    </div>
+    <div class="nav-item" data-page="leave">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="1"/><path d="M3 10h18"/><path d="M8 3v4M16 3v4"/><path d="M8 15l2 2 4-4"/></svg>
+      บันทึกการลา
+    </div>
+    <div class="nav-item" data-page="payroll">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="6" width="20" height="13" rx="1"/><circle cx="12" cy="12.5" r="3"/><path d="M6 6V4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5V6"/></svg>
+      บัญชีเงินเดือน
+    </div>
+
+    <div class="ledger-footer">
+      <div class="ledger-stamp">ฝ่ายบุคคล</div>
+      <div class="user-name-ledger">นภัสกร จันทร์</div>
+      <div class="user-role-ledger">HR Officer · แผนกบุคคล</div>
+    </div>
+  </aside>
+
+  <!-- ── MAIN ── -->
+  <main class="main">
+
+    <!-- DASHBOARD -->
+    <section class="page active" id="page-dashboard">
+      <div class="page-head">
+        <div>
+          <div class="page-title">ภาพรวมประจำวัน</div>
+          <div class="page-sub">วันศุกร์ · ๒๖ มิถุนายน ๒๕๖๙</div>
+        </div>
+        <button class="btn">+ บันทึกพนักงานใหม่</button>
+      </div>
+
+      <!-- Signature: Weekly Register Grid -->
+      <div class="register-card">
+        <div class="reg-header">
+          <div class="reg-title">สมุดลงชื่อเข้างาน — สัปดาห์นี้</div>
+          <div class="reg-meta">23–27 มิถุนายน 2569</div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="reg-table" id="register-table"></table>
+        </div>
+        <div class="reg-legend">
+          <span><span class="mark in">✓</span> เข้างาน</span>
+          <span><span class="mark leave">○</span> ลา</span>
+          <span><span class="mark late">△</span> เข้าสาย</span>
+          <span><span class="mark out">–</span> ข้อมูลไม่ครบ</span>
+        </div>
+      </div>
+
+      <div class="grid-4">
+        <div class="card stat-border-left leaf-accent">
+          <div class="stat-eyebrow">พนักงานทั้งหมด</div>
+          <div class="stat-value">128 <span class="unit">คน</span></div>
+          <div class="stat-delta up">▲ เพิ่ม 3 คน จากเดือนก่อน</div>
+        </div>
+        <div class="card stat-border-left leaf-accent">
+          <div class="stat-eyebrow">เข้างานวันนี้</div>
+          <div class="stat-value">112 <span class="unit">/ 128</span></div>
+          <div class="stat-delta up">87.5% ของพนักงานทั้งหมด</div>
+        </div>
+        <div class="card stat-border-left">
+          <div class="stat-eyebrow">คำขอลารออนุมัติ</div>
+          <div class="stat-value">7 <span class="unit">รายการ</span></div>
+          <div class="stat-delta warn">รออนุมัติเกิน 2 วัน: 2 รายการ</div>
+        </div>
+        <div class="card stat-border-left wood-accent">
+          <div class="stat-eyebrow">เงินเดือนรอบนี้</div>
+          <div class="stat-value" style="font-size:26px;">3.84 <span class="unit">ล้านบาท</span></div>
+          <div class="stat-delta">จ่ายวันที่ 30 มิ.ย.</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">คำขอลาล่าสุด</div>
+          <div class="card-sub">รายการที่รอการพิจารณา</div>
+          <div class="req-row">
+            <div class="req-left">
+              <div class="av av-1">ดว</div>
+              <div><div class="p-name">ดวงใจ วัฒนกุล</div><div class="req-meta">ลาป่วย · 28 มิ.ย. 2569 · 1 วัน</div></div>
+            </div>
+            <span class="stamp-badge warn">รออนุมัติ</span>
+          </div>
+          <div class="req-row">
+            <div class="req-left">
+              <div class="av av-2">ธว</div>
+              <div><div class="p-name">ธีรวัฒน์ ศรีสุข</div><div class="req-meta">ลากิจ · 1–2 ก.ค. 2569 · 2 วัน</div></div>
+            </div>
+            <span class="stamp-badge warn">รออนุมัติ</span>
+          </div>
+          <div class="req-row">
+            <div class="req-left">
+              <div class="av av-3">พร</div>
+              <div><div class="p-name">พรทิพย์ อินทร์แก้ว</div><div class="req-meta">ลาพักร้อน · 5–9 ก.ค. 2569 · 5 วัน</div></div>
+            </div>
+            <span class="stamp-badge ok">อนุมัติแล้ว</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">วันครบกำหนดสำคัญ</div>
+          <div class="card-sub">7 วันข้างหน้า</div>
+          <div class="req-row"><div><div class="p-name">ทดลองงานครบกำหนด</div><div class="req-meta">อภิสิทธิ์ บุญมา · 30 มิ.ย.</div></div></div>
+          <div class="req-row"><div><div class="p-name">ครบสัญญาจ้าง</div><div class="req-meta">สุพิชชา โพธิ์งาม · 2 ก.ค.</div></div></div>
+          <div class="req-row"><div><div class="p-name">วันเกิดพนักงาน</div><div class="req-meta">3 คนในสัปดาห์นี้</div></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- EMPLOYEES -->
+    <section class="page" id="page-employees">
+      <div class="page-head">
+        <div>
+          <div class="page-title">ทะเบียนพนักงาน</div>
+          <div class="page-sub">128 รายชื่อ · 6 แผนก</div>
+        </div>
+        <button class="btn">+ บันทึกพนักงานใหม่</button>
+      </div>
+      <div class="toolbar">
+        <div class="search">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input type="text" placeholder="ค้นหาชื่อ, รหัส, แผนก...">
+        </div>
+        <div class="filters">
+          <span class="chip active">ทั้งหมด</span>
+          <span class="chip">ฝ่ายขาย</span>
+          <span class="chip">ฝ่ายผลิต</span>
+          <span class="chip">ฝ่ายบุคคล</span>
+          <span class="chip">IT</span>
+        </div>
+      </div>
+      <div class="card" style="padding:0;">
+        <table>
+          <thead>
+            <tr>
+              <th style="padding-left:20px;">ชื่อ-นามสกุล</th>
+              <th>รหัส</th><th>แผนก</th><th>ตำแหน่ง</th><th>วันเริ่มงาน</th><th>สถานะ</th>
+            </tr>
+          </thead>
+          <tbody id="emp-table-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- LEAVE -->
+    <section class="page" id="page-leave">
+      <div class="page-head">
+        <div>
+          <div class="page-title">บันทึกการลา</div>
+          <div class="page-sub">รอบเดือนมิถุนายน 2569</div>
+        </div>
+        <button class="btn leaf-btn">+ บันทึกการลา</button>
+      </div>
+      <div class="leave-grid">
+        <div class="leave-type-card">
+          <div class="leave-type-top">
+            <div><div class="card-title" style="margin-bottom:3px;">ลาพักร้อน</div><div class="card-sub" style="margin-bottom:0;">ใช้ไป 4 จาก 10 วัน</div></div>
+            <div class="leave-type-icon">🌿</div>
+          </div>
+          <div class="leave-bar-track"><div class="leave-bar-fill fill-amber" style="width:40%"></div></div>
+        </div>
+        <div class="leave-type-card">
+          <div class="leave-type-top">
+            <div><div class="card-title" style="margin-bottom:3px;">ลาป่วย</div><div class="card-sub" style="margin-bottom:0;">ใช้ไป 2 จาก 30 วัน</div></div>
+            <div class="leave-type-icon">🍵</div>
+          </div>
+          <div class="leave-bar-track"><div class="leave-bar-fill fill-rust" style="width:7%"></div></div>
+        </div>
+        <div class="leave-type-card">
+          <div class="leave-type-top">
+            <div><div class="card-title" style="margin-bottom:3px;">ลากิจ</div><div class="card-sub" style="margin-bottom:0;">ใช้ไป 1 จาก 5 วัน</div></div>
+            <div class="leave-type-icon">📋</div>
+          </div>
+          <div class="leave-bar-track"><div class="leave-bar-fill fill-leaf" style="width:20%"></div></div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">รายการรออนุมัติ</div>
+          <div class="card-sub">พิจารณาคำขอลา</div>
+          <div class="req-row">
+            <div class="req-left"><div class="av av-1">ดว</div><div><div class="p-name">ดวงใจ วัฒนกุล</div><div class="req-meta">ลาป่วย · 28 มิ.ย. 2569 · 1 วัน</div></div></div>
+            <div class="req-actions">
+              <div class="icon-btn approve"><svg viewBox="0 0 24 24" fill="none" stroke="var(--leaf)" stroke-width="2.5" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+              <div class="icon-btn reject"><svg viewBox="0 0 24 24" fill="none" stroke="var(--rust)" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
+            </div>
+          </div>
+          <div class="req-row">
+            <div class="req-left"><div class="av av-2">ธว</div><div><div class="p-name">ธีรวัฒน์ ศรีสุข</div><div class="req-meta">ลากิจ · 1–2 ก.ค. 2569 · 2 วัน</div></div></div>
+            <div class="req-actions">
+              <div class="icon-btn approve"><svg viewBox="0 0 24 24" fill="none" stroke="var(--leaf)" stroke-width="2.5" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+              <div class="icon-btn reject"><svg viewBox="0 0 24 24" fill="none" stroke="var(--rust)" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
+            </div>
+          </div>
+          <div class="req-row">
+            <div class="req-left"><div class="av av-3">กส</div><div><div class="p-name">กันต์ สมพงษ์</div><div class="req-meta">ลาพักร้อน · 10–11 ก.ค. 2569 · 2 วัน</div></div></div>
+            <div class="req-actions">
+              <div class="icon-btn approve"><svg viewBox="0 0 24 24" fill="none" stroke="var(--leaf)" stroke-width="2.5" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+              <div class="icon-btn reject"><svg viewBox="0 0 24 24" fill="none" stroke="var(--rust)" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">บันทึกเวลาเข้า-ออก</div>
+          <div class="card-sub">วันนี้</div>
+          <div class="req-row">
+            <div class="req-left"><div class="av av-4">อภ</div><div><div class="p-name">อภิสิทธิ์ บุญมา</div><div class="req-meta" style="font-family:'Courier Prime',monospace;">เข้า 08:52 · ออก —</div></div></div>
+            <span class="stamp-badge ok">ปกติ</span>
+          </div>
+          <div class="req-row">
+            <div class="req-left"><div class="av av-1">สุ</div><div><div class="p-name">สุพิชชา โพธิ์งาม</div><div class="req-meta" style="font-family:'Courier Prime',monospace;">เข้า 09:21 · ออก —</div></div></div>
+            <span class="stamp-badge danger">เข้าสาย</span>
+          </div>
+          <div class="req-row">
+            <div class="req-left"><div class="av av-2">วร</div><div><div class="p-name">วราภรณ์ ใจดี</div><div class="req-meta">ลาป่วยทั้งวัน</div></div></div>
+            <span class="stamp-badge warn">ลา</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAYROLL -->
+    <section class="page" id="page-payroll">
+      <div class="page-head">
+        <div>
+          <div class="page-title">บัญชีเงินเดือน</div>
+          <div class="page-sub">รอบจ่าย 30 มิถุนายน 2569</div>
+        </div>
+        <button class="btn amber-btn">ดำเนินการจ่ายเงินเดือน</button>
+      </div>
+      <div class="payroll-grid">
+        <div class="card stat-border-left wood-accent">
+          <div class="stat-eyebrow">ยอดจ่ายรวมรอบนี้</div>
+          <div class="stat-value" style="font-size:26px;">3,841,200 <span class="unit">บาท</span></div>
+          <div class="stat-delta">128 คน</div>
+        </div>
+        <div class="card stat-border-left rust-accent">
+          <div class="stat-eyebrow">ภาษีหัก ณ ที่จ่าย</div>
+          <div class="stat-value" style="font-size:26px;">186,400 <span class="unit">บาท</span></div>
+          <div class="stat-delta">นำส่งสรรพากรภายใน 7 ก.ค.</div>
+        </div>
+        <div class="card stat-border-left">
+          <div class="stat-eyebrow">ประกันสังคม (รวม)</div>
+          <div class="stat-value" style="font-size:26px;">115,236 <span class="unit">บาท</span></div>
+          <div class="stat-delta">นายจ้าง + ลูกจ้าง</div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="card" style="padding:0;">
+          <div style="padding:18px 20px 0 20px;">
+            <div class="card-title">สลิปเงินเดือนรายบุคคล</div>
+            <div class="card-sub">รอบมิถุนายน 2569</div>
+          </div>
+          <table>
+            <thead><tr>
+              <th style="padding-left:20px;">พนักงาน</th>
+              <th>เงินเดือนพื้นฐาน</th><th>หักรวม</th><th>รับสุทธิ</th><th></th>
+            </tr></thead>
+            <tbody id="payroll-table-body"></tbody>
+          </table>
+        </div>
+        <div class="card">
+          <div class="card-title">ขั้นตอนการดำเนินการ</div>
+          <div class="card-sub">อัปเดตล่าสุด 09:40</div>
+          <div class="progress-row"><div class="progress-label">ตรวจสอบข้อมูล</div><div class="progress-track"><div class="progress-fill" style="width:100%"></div></div><div class="progress-val">128/128</div></div>
+          <div class="progress-row"><div class="progress-label">อนุมัติโดยหัวหน้า</div><div class="progress-track"><div class="progress-fill" style="width:92%"></div></div><div class="progress-val">118/128</div></div>
+          <div class="progress-row"><div class="progress-label">โอนเข้าธนาคาร</div><div class="progress-track"><div class="progress-fill" style="width:0%"></div></div><div class="progress-val">รอดำเนินการ</div></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+  // ── Navigation ──
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      item.classList.add('active');
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById('page-' + item.dataset.page).classList.add('active');
+    });
+  });
+
+  // ── Weekly Register Grid (signature) ──
+  const days   = ['จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.'];
+  const dates  = ['23', '24', '25', '26', '27'];
+  const people = [
+    { name: 'อภิสิทธิ์',  row: ['✓','✓','✓','✓','✓'], marks: ['in','in','in','in','in'] },
+    { name: 'สุพิชชา',    row: ['✓','✓','△','✓','✓'], marks: ['in','in','late','in','in'] },
+    { name: 'ดวงใจ',      row: ['✓','✓','✓','○','–'], marks: ['in','in','in','leave','out'] },
+    { name: 'ธีรวัฒน์',   row: ['✓','○','○','✓','✓'], marks: ['in','leave','leave','in','in'] },
+    { name: 'พรทิพย์',    row: ['✓','✓','✓','✓','✓'], marks: ['in','in','in','in','in'] },
+    { name: 'กันต์',      row: ['△','✓','✓','✓','✓'], marks: ['late','in','in','in','in'] },
+    { name: 'วราภรณ์',    row: ['✓','✓','○','○','○'], marks: ['in','in','leave','leave','leave'] },
+    { name: 'มลฤดี',      row: ['✓','✓','✓','✓','✓'], marks: ['in','in','in','in','in'] },
+  ];
+
+  const tbl = document.getElementById('register-table');
+  const thead = tbl.createTHead();
+  const hr = thead.insertRow();
+  const th0 = document.createElement('th');
+  th0.className = 'name-col';
+  th0.textContent = 'ชื่อพนักงาน';
+  hr.appendChild(th0);
+  days.forEach((d, i) => {
+    const th = document.createElement('th');
+    th.innerHTML = `${d}<br><span style="font-size:10px;opacity:.7">${dates[i]} มิ.ย.</span>`;
+    hr.appendChild(th);
+  });
+
+  const tbody = tbl.createTBody();
+  people.forEach(p => {
+    const tr = tbody.insertRow();
+    const td0 = tr.insertCell();
+    td0.className = 'name-col';
+    td0.textContent = p.name;
+    p.row.forEach((m, i) => {
+      const td = tr.insertCell();
+      td.innerHTML = `<span class="mark ${p.marks[i]}">${m}</span>`;
+    });
+  });
+
+  // ── Employee table ──
+  const employees = [
+    ['ปว','ปวริศา สมานมิตร','EMP-0142','ฝ่ายขาย','Sales Executive','12 ม.ค. 2566','active','av-1'],
+    ['ธว','ธีรวัฒน์ ศรีสุข','EMP-0098','ฝ่ายผลิต','หัวหน้าไลน์ผลิต','3 มี.ค. 2564','active','av-2'],
+    ['ดว','ดวงใจ วัฒนกุล','EMP-0155','ฝ่ายบุคคล','HR Officer','20 ส.ค. 2565','leave','av-3'],
+    ['อภ','อภิสิทธิ์ บุญมา','EMP-0210','IT','Frontend Developer','30 ก.ย. 2568','probation','av-4'],
+    ['สุ','สุพิชชา โพธิ์งาม','EMP-0061','ฝ่ายขาย','Sales Manager','2 ก.ค. 2562','active','av-1'],
+    ['วร','วราภรณ์ ใจดี','EMP-0177','ฝ่ายผลิต','QC Inspector','15 พ.ย. 2564','leave','av-2'],
+    ['กส','กันต์ สมพงษ์','EMP-0188','IT','Backend Developer','8 ก.พ. 2566','active','av-3'],
+    ['พร','พรทิพย์ อินทร์แก้ว','EMP-0033','บัญชี','Accountant','19 พ.ค. 2563','active','av-4'],
+    ['มล','มลฤดี แสงทอง','EMP-0205','ฝ่ายบุคคล','Recruiter','1 ธ.ค. 2568','probation','av-1'],
+    ['ชย','ชยพล ทองดี','EMP-0119','ฝ่ายผลิต','Operator','9 ก.ย. 2567','active','av-2'],
+  ];
+  const statusMap = { active:['ทำงานปกติ','ok'], leave:['อยู่ระหว่างลา','warn'], probation:['ทดลองงาน','neutral'] };
+  const empBody = document.getElementById('emp-table-body');
+  employees.forEach(([init,name,code,dept,role,start,status,av]) => {
+    const [label,cls] = statusMap[status];
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="padding-left:20px;">
+        <div class="person-cell">
+          <div class="av ${av}">${init}</div>
+          <div><div class="p-name">${name}</div><div class="p-role">${role}</div></div>
+        </div>
+      </td>
+      <td style="font-family:'Courier Prime',monospace;">${code}</td>
+      <td>${dept}</td><td>${role}</td><td>${start}</td>
+      <td><span class="stamp-badge ${cls}">${label}</span></td>
+    `;
+    empBody.appendChild(tr);
+  });
+
+  // ── Payroll table ──
+  const payroll = [
+    ['ปว','ปวริศา สมานมิตร','32,000','3,840','28,160','av-1'],
+    ['ธว','ธีรวัฒน์ ศรีสุข','45,000','6,200','38,800','av-2'],
+    ['ดว','ดวงใจ วัฒนกุล','28,000','2,950','25,050','av-3'],
+    ['อภ','อภิสิทธิ์ บุญมา','38,000','4,100','33,900','av-4'],
+    ['สุ','สุพิชชา โพธิ์งาม','52,000','7,800','44,200','av-1'],
+  ];
+  const payBody = document.getElementById('payroll-table-body');
+  payroll.forEach(([init,name,base,deduct,net,av]) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="padding-left:20px;">
+        <div class="person-cell"><div class="av ${av}">${init}</div><div class="p-name">${name}</div></div>
+      </td>
+      <td style="font-family:'Courier Prime',monospace;">${base}</td>
+      <td style="font-family:'Courier Prime',monospace;">${deduct}</td>
+      <td style="font-family:'Courier Prime',monospace;font-weight:700;">${net}</td>
+      <td><span class="slip-link">ดูสลิป →</span></td>
+    `;
+    payBody.appendChild(tr);
+  });
+</script>
+</body>
+</html>
